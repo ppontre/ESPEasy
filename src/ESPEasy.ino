@@ -109,11 +109,27 @@
 // Use the "System Info" device to read the VCC value
 #define FEATURE_ADC_VCC                  false
 
+
 //enable Arduino OTA updating.
 //Note: This adds around 10kb to the firmware size, and 1kb extra ram.
-//Normally only enabled for dev environment, since its helpfull while developing.
+//Normally only enabled for the platformio dev environment, since its helpfull while developing.
 // #define FEATURE_ARDUINO_OTA
 
+
+//Select which plugin sets you want to build.
+//These are normally automaticly set via the Platformio build environment.
+//If you use ArduinoIDE you might need to uncomment some of them, depending on your needs
+//If you dont select any, a version with a minimal number of plugins will be biult for 512k versions.
+//(512k is NOT finsihed or tested yet as of v2.0.0-dev6)
+
+//build all the normal stable plugins
+//#define PLUGIN_BUILD_NORMAL
+
+//build all plugins that are in test stadium
+//#define PLUGIN_BUILD_TESTING
+
+//build all plugins that still are being developed and are broken or incomplete
+//#define PLUGIN_BUILD_DEV
 
 // ********************************************************************************
 //   DO NOT CHANGE ANYTHING BELOW THIS LINE
@@ -256,8 +272,8 @@
 #include <Wire.h>
 #include <SPI.h>
 #include <PubSubClient.h>
-#include <ArduinoJson.h>
-#include <LiquidCrystal_I2C.h>
+// #include <ArduinoJson.h>
+// #include <LiquidCrystal_I2C.h>
 #include <Servo.h>
 #define FS_NO_GLOBALS
 #include <FS.h>
@@ -292,8 +308,6 @@ const byte DNS_PORT = 53;
 IPAddress apIP(192, 168, 4, 1);
 DNSServer dnsServer;
 
-Servo myservo1;
-Servo myservo2;
 
 // MQTT client
 WiFiClient mqtt;
@@ -779,7 +793,7 @@ void loop()
         serial();
 
   // Deep sleep mode, just run all tasks one time and go back to sleep as fast as possible
-  if (Settings.deepSleep)
+  if (isDeepSleepEnabled())
   {
       run50TimesPerSecond();
       run10TimesPerSecond();
@@ -803,9 +817,8 @@ void loop()
 
     if (millis() > timer1s)
       runOncePerSecond();
-
-    backgroundtasks();
   }
+  backgroundtasks();
 
 }
 
@@ -954,12 +967,13 @@ void runEach30Seconds()
 \*********************************************************************************************/
 void checkSensors()
 {
+  bool isDeepSleep = isDeepSleepEnabled();
   //check all the devices and only run the sendtask if its time, or we if we used deep sleep mode
   for (byte x = 0; x < TASKS_MAX; x++)
   {
     if (
         (Settings.TaskDeviceTimer[x] != 0) &&
-        (Settings.deepSleep || (millis() > timerSensor[x]))
+        (isDeepSleep || (millis() > timerSensor[x]))
     )
     {
       timerSensor[x] = millis() + Settings.TaskDeviceTimer[x] * 1000;

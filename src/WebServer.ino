@@ -131,7 +131,7 @@ void handle_root() {
   // if Wifi setup, launch setup wizard
   if (wifiSetup)
   {
-    WebServer.send(200, "text/html", F("<meta HTTP-EQUIV='REFRESH' content='0; url=http://192.168.4.1/setup'>"));
+    WebServer.send(200, "text/html", F("<meta HTTP-EQUIV='REFRESH' content='0; url=/setup'>"));
     return;
   }
 
@@ -163,13 +163,23 @@ void handle_root() {
     reply += F("<TD><TD>GIT version:<TD>");
     reply += BUILD_GIT;
 
-    reply += F("<TR><TD>System Time:<TD>");
+    reply += F("<TR><TD>Local Time:<TD>");
     if (Settings.UseNTP)
     {
-      reply += hour();
-      reply += ":";
-      if (minute() < 10)
+      reply += year();
+      reply += F("-");
+      if (month() < 10)
         reply += "0";
+      reply += month();
+      reply += F("-");
+      if (day() < 10)
+      	reply += F("0");
+      reply += day();
+      reply += F(" ");
+      reply += hour();
+      reply += F(":");
+      if (minute() < 10)
+        reply += F("0");
       reply += minute();
     }
     else
@@ -338,10 +348,10 @@ void handle_config() {
   }
 
   reply += F("<form name='frmselect' method='post'><table>");
-  reply += F("<TH>Main Settings<TH><TR><TD>Name:<TD><input type='text' name='name' value='");
+  reply += F("<TH>Main Settings<TH><TR><TD>Name:<TD><input type='text'  maxlength='25' name='name' value='");
   Settings.Name[25] = 0;
   reply += Settings.Name;
-  reply += F("'><TR><TD>Admin Password:<TD><input type='text' name='password' value='");
+  reply += F("'><TR><TD>Admin Password:<TD><input type='password' maxlength='25'  name='password' value='");
   SecuritySettings.Password[25] = 0;
   reply += SecuritySettings.Password;
   reply += F("'><TR><TD>SSID:<TD><input type='text' name='ssid' value='");
@@ -353,7 +363,7 @@ void handle_config() {
   reply += F("'><TR><TD>Fallback WPA Key:<TD><input type='password' maxlength='63' name='key2' value='");
   reply += SecuritySettings.WifiKey2;
 
-  reply += F("'><TR><TD>WPA AP Mode Key:<TD><input type='text' maxlength='63' name='apkey' value='");
+  reply += F("'><TR><TD>WPA AP Mode Key:<TD><input type='password' maxlength='63' name='apkey' value='");
   reply += SecuritySettings.WifiAPKey;
 
   reply += F("'><TR><TD>Unit nr:<TD><input type='text' name='unit' value='");
@@ -598,7 +608,7 @@ void handle_controllers() {
 
       if (Protocol[ProtocolIndex].usesPassword)
       {
-        reply += F("<TR><TD>Controller Password:<TD><input type='text' name='controllerpassword' value='");
+        reply += F("<TR><TD>Controller Password:<TD><input type='password' name='controllerpassword' value='");
         reply += SecuritySettings.ControllerPassword[index - 1];
         reply += F("'>");
       }
@@ -1587,6 +1597,62 @@ void sortDeviceArray()
 
 
 //********************************************************************************
+// Add a GPIO pin select dropdown list for both 8266 and 8285
+//********************************************************************************
+#ifdef ESP8285
+// Code for the ESP8285
+
+//********************************************************************************
+// Add a GPIO pin select dropdown list
+//********************************************************************************
+void addPinSelect(boolean forI2C, String& str, String name,  int choice)
+{
+  String options[18];
+  options[0] = F(" ");
+  options[1] = F("GPIO-0 (D3)");
+  options[2] = F("GPIO-1 (D10)");
+  options[3] = F("GPIO-2 (D4)");
+  options[4] = F("GPIO-3 (D9)");
+  options[5] = F("GPIO-4 (D2)");
+  options[6] = F("GPIO-5 (D1)");
+  options[7] = F("GPIO-6");
+  options[8] = F("GPIO-7");
+  options[9] = F("GPIO-8");
+  options[10] = F("GPIO-9 (D11)");
+  options[11] = F("GPIO-10 (D12)");
+  options[12] = F("GPIO-11");
+  options[13] = F("GPIO-12 (D6)");
+  options[14] = F("GPIO-13 (D7)");
+  options[15] = F("GPIO-14 (D5)");
+  options[16] = F("GPIO-15 (D8)");
+  options[17] = F("GPIO-16 (D0)");
+  int optionValues[18];
+  optionValues[0] = -1;
+  optionValues[1] = 0;
+  optionValues[2] = 1;
+  optionValues[3] = 2;
+  optionValues[4] = 3;
+  optionValues[5] = 4;
+  optionValues[6] = 5;
+  optionValues[7] = 7;
+  optionValues[8] = 7;
+  optionValues[9] = 8;
+  optionValues[10] = 9;
+  optionValues[11] = 10;
+  optionValues[12] = 11;
+  optionValues[13] = 12;
+  optionValues[14] = 13;
+  optionValues[15] = 14;
+  optionValues[16] = 15;
+  optionValues[17] = 16;
+  renderHTMLForPinSelect(options, optionValues, forI2C, str, name, choice, 18);
+}
+
+
+#else
+// Code for the ESP8266
+
+//********************************************************************************
 // Add a GPIO pin select dropdown list
 //********************************************************************************
 void addPinSelect(boolean forI2C, String& str, String name,  int choice)
@@ -1621,30 +1687,39 @@ void addPinSelect(boolean forI2C, String& str, String name,  int choice)
   optionValues[11] = 14;
   optionValues[12] = 15;
   optionValues[13] = 16;
-  str += F("<select name='");
-  str += name;
-  str += "'>";
-  for (byte x = 0; x < 14; x++)
-  {
-    str += F("<option value='");
-    str += optionValues[x];
-    str += "'";
-    if (optionValues[x] != -1) // empty selection can never be disabled...
-    {
-      if (!forI2C && ((optionValues[x] == Settings.Pin_i2c_sda) || (optionValues[x] == Settings.Pin_i2c_scl)))
-        str += F(" disabled");
-      if (Settings.UseSerial && ((optionValues[x] == 1) || (optionValues[x] == 3)))
-        str += F(" disabled");
-    }
-    if (choice == optionValues[x])
-      str += F(" selected");
-    str += ">";
-    str += options[x];
-    str += F("</option>");
-  }
-  str += F("</select>");
+  renderHTMLForPinSelect(options, optionValues, forI2C, str, name, choice, 14);
 }
 
+#endif
+
+//********************************************************************************
+// Helper function actually rendering dropdown list for addPinSelect()
+//********************************************************************************
+void renderHTMLForPinSelect(String options[], int optionValues[], boolean forI2C, String& str, String name,  int choice, int count) {
+    str += F("<select name='");
+    str += name;
+    str += "'>";
+    for (byte x = 0; x < count; x++)
+    {
+      str += F("<option value='");
+      str += optionValues[x];
+      str += "'";
+      if (optionValues[x] != -1) // empty selection can never be disabled...
+      {
+        if (!forI2C && ((optionValues[x] == Settings.Pin_i2c_sda) || (optionValues[x] == Settings.Pin_i2c_scl)))
+          str += F(" disabled");
+        if (Settings.UseSerial && ((optionValues[x] == 1) || (optionValues[x] == 3)))
+          str += F(" disabled");
+      }
+      if (choice == optionValues[x])
+        str += F(" selected");
+      str += ">";
+      str += options[x];
+      str += F("</option>");
+    }
+    str += F("</select>");
+
+}
 
 //********************************************************************************
 // Add a task select dropdown list
@@ -1771,7 +1846,7 @@ void handle_tools() {
   reply += F("<a class=\"button-link\" href=\"/wifiscanner\">Scan</a><BR><BR>");
   reply += F("<TR><TD>Interfaces<TD><a class=\"button-link\" href=\"/i2cscanner\">I2C Scan</a><BR><BR>");
   reply += F("<TR><TD>Settings<TD><a class=\"button-link\" href=\"/upload\">Load</a>");
-  reply += F("<a class=\"button-link\" href=\"/download\">Save</a>");
+  reply += F("<a class=\"button-link\" href=\"/download\">Save</a> (If you change filename, load will not work!!)");
   if (ESP.getFlashChipRealSize() > 524288)
   {
     reply += F("<TR><TD>Firmware<TD><a class=\"button-link\" href=\"/update\">Load</a>");
@@ -1852,7 +1927,7 @@ void handle_i2cscanner() {
           reply += F("PCF8574<BR>MCP23017<BR>LCD<BR>PN532");
           break;
         case 0x29:
-          reply += F("TLS2561");
+          reply += F("TSL2561");
           break;
         case 0x38:
         case 0x3A:
@@ -1862,7 +1937,7 @@ void handle_i2cscanner() {
           reply += F("PCF8574A");
           break;
         case 0x39:
-          reply += F("PCF8574A<BR>TLS2561");
+          reply += F("PCF8574A<BR>TSL2561");
           break;
         case 0x3C:
         case 0x3D:
@@ -1882,7 +1957,7 @@ void handle_i2cscanner() {
           reply += F("PCF8591<BR>ADS1115");
           break;
         case 0x49:
-          reply += F("PCF8591<BR>ADS1115<BR>TLS2561");
+          reply += F("PCF8591<BR>ADS1115<BR>TSL2561");
           break;
         case 0x4C:
         case 0x4D:
@@ -1895,6 +1970,12 @@ void handle_i2cscanner() {
           break;
         case 0x5C:
           reply += F("DHT12<BR>BH1750");
+          break;
+        case 0x60:
+          reply += F("Adafruit Motorshield v2");
+          break;
+        case 0x70:
+          reply += F("Adafruit Motorshield v2 (Catchall)");
           break;
         case 0x76:
           reply += F("BME280<BR>BMP280<BR>MS5607<BR>MS5611");
@@ -2599,7 +2680,7 @@ void handleNotFound() {
 
   if (wifiSetup)
   {
-    WebServer.send(200, "text/html", "<meta HTTP-EQUIV='REFRESH' content='0; url=http://192.168.4.1/setup'>");
+    WebServer.send(200, "text/html", "<meta HTTP-EQUIV='REFRESH' content='0; url=/setup'>");
     return;
   }
 
@@ -2887,11 +2968,22 @@ void handle_sysinfo() {
 
   if (Settings.UseNTP)
   {
-    reply += F("<TR><TD>System Time:<TD>");
-    reply += hour();
-    reply += ":";
-    if (minute() < 10)
+
+    reply += F("<TR><TD>Local Time:<TD>");
+    reply += year();
+    reply += F("-");
+    if (month() < 10)
       reply += "0";
+    reply += month();
+    reply += F("-");
+    if (day() < 10)
+    	reply += F("0");
+    reply += day();
+    reply += F(" ");
+    reply += hour();
+    reply += F(":");
+    if (minute() < 10)
+      reply += F("0");
     reply += minute();
   }
 
@@ -2959,16 +3051,18 @@ void handle_sysinfo() {
   reply += BUILD_GIT;
 
   reply += F("<TR><TD>Plugin sets:<TD>");
-  #ifdef PLUGIN_BUILD_DEV
-    reply += F("Normal, Testing, Development");
-  #elif PLUGIN_BUILD_TESTING
-    reply += F("Normal, Testing");
-  #elif PLUGIN_BUILD_NORMAL
-    reply += F("Normal");
-  #else
-    reply += F("Minimal");
+
+  #ifdef PLUGIN_BUILD_NORMAL
+    reply += F("[Normal] ");
   #endif
 
+  #ifdef PLUGIN_BUILD_TESTING
+    reply += F("[Testing] ");
+  #endif
+
+  #ifdef PLUGIN_BUILD_DEV
+    reply += F("[Development] ");
+  #endif
 
   reply += F("<TR><TD>Core Version:<TD>");
   reply += ESP.getCoreVersion();
@@ -2998,7 +3092,7 @@ void handle_sysinfo() {
       reply += F("Manual reboot");
       break;
     case BOOT_CAUSE_DEEP_SLEEP: //nobody should ever see this, since it should sleep again right away.
-      reply += F("Deep sleep"); 
+      reply += F("Deep sleep");
       break;
     case BOOT_CAUSE_COLD_BOOT:
       reply += F("Cold boot");

@@ -1,7 +1,8 @@
 
-void deepSleep(int delay)
+bool isDeepSleepEnabled()
 {
-  String log;
+  if (!Settings.deepSleep)
+    return false;
 
   //cancel deep sleep loop by pulling the pin GPIO16(D0) to GND
   //recommended wiring: 3-pin-header with 1=RST, 2=D0, 3=GND
@@ -9,9 +10,18 @@ void deepSleep(int delay)
   //                    short 2-3 to cancel sleep loop for modifying settings
   pinMode(16,INPUT_PULLUP);
   if (!digitalRead(16))
+    return false;
+
+  return true;
+}
+
+void deepSleep(int delay)
+{
+  String log;
+
+  if (!isDeepSleepEnabled())
   {
-    log = F("Deep sleep canceled by GPIO16(D0)=LOW.");
-    addLog(LOG_LEVEL_INFO, log);
+    //Deep sleep canceled by GPIO16(D0)=LOW
     return;
   }
 
@@ -22,7 +32,7 @@ void deepSleep(int delay)
     addLog(LOG_LEVEL_INFO, log);
     delayMillis(30000);
     //disabled?
-    if (!Settings.deepSleep)
+    if (!isDeepSleepEnabled())
     {
       log = F("Deep sleep disabled.");
       addLog(LOG_LEVEL_INFO, log);
@@ -38,7 +48,9 @@ void deepSleep(int delay)
 
   String event = F("System#Sleep");
   rulesProcessing(event);
-  ESP.deepSleep(delay * 1000000, WAKE_RF_DEFAULT);
+  if (delay > 4294 || delay < 0)
+    delay = 4294;   //max sleep time ~1.2h
+  ESP.deepSleep((uint32_t)delay * 1000000, WAKE_RF_DEFAULT);
 }
 
 boolean remoteConfig(struct EventStruct *event, String& string)
@@ -1737,12 +1749,28 @@ unsigned long now() {
   return (unsigned long)sysTime;
 }
 
-int hour()
+int year()
+{
+  return 1970 + tm.Year;
+}
+
+byte month()
+{
+	return tm.Month;
+}
+
+byte day()
+{
+	return tm.Day;
+}
+
+
+byte hour()
 {
   return tm.Hour;
 }
 
-int minute()
+byte minute()
 {
   return tm.Minute;
 }
@@ -1856,6 +1884,13 @@ unsigned long getNtpTime()
   \*********************************************************************************************/
 void rulesProcessing(String& event)
 {
+  unsigned long timer = millis();
+  String log = "";
+
+  log = F("EVENT: ");
+  log += event;
+  addLog(LOG_LEVEL_INFO, log);
+
   for (byte x = 1; x < RULESETS_MAX + 1; x++)
   {
     String fileName = F("rules");
@@ -1864,6 +1899,12 @@ void rulesProcessing(String& event)
     if (SPIFFS.exists(fileName))
       rulesProcessingFile(fileName, event);
   }
+
+  log = F("EVENT: Processing time:");
+  log += millis() - timer;
+  log += F(" milliSeconds");
+  addLog(LOG_LEVEL_DEBUG, log);
+
 }
 
 /********************************************************************************************\
@@ -1871,7 +1912,6 @@ void rulesProcessing(String& event)
   \*********************************************************************************************/
 void rulesProcessingFile(String fileName, String& event)
 {
-  unsigned long timer = millis();
   fs::File f = SPIFFS.open(fileName, "r+");
   if (!f)
     return;
@@ -1889,9 +1929,6 @@ void rulesProcessingFile(String fileName, String& event)
     return;
   }
 
-  log = F("EVENT: ");
-  log += event;
-  addLog(LOG_LEVEL_INFO, log);
 
   int pos = 0;
   String line = "";
@@ -2022,13 +2059,7 @@ void rulesProcessingFile(String fileName, String& event)
   }
 
   nestingLevel--;
-  if (nestingLevel == 0)
-  {
-    log = F("EVENT: Processing time:");
-    log += millis() - timer;
-    log += F(" milliSeconds");
-    addLog(LOG_LEVEL_INFO, log);
-  }
+
 }
 
 
@@ -2222,7 +2253,7 @@ void rulesTimers()
   {
     if (RulesTimer[x] != 0L) // timer active?
     {
-      if (RulesTimer[x] < millis()) // timer finished?
+      if (RulesTimer[x] <= millis()) // timer finished?
       {
         RulesTimer[x] = 0L; // turn off this timer
         String event = F("Rules#Timer=");
@@ -2280,6 +2311,7 @@ void checkRAM(byte id)
   \*********************************************************************************************/
 void tone(uint8_t _pin, unsigned int frequency, unsigned long duration) {
   analogWriteFreq(frequency);
+  //NOTE: analogwrite reserves IRAM and uninitalized ram.
   analogWrite(_pin,100);
   delay(duration);
   analogWrite(_pin,0);
@@ -2454,6 +2486,7 @@ void ArduinoOTAInit()
 {
   // Default port is 8266
   ArduinoOTA.setPort(8266);
+	ArduinoOTA.setHostname(Settings.Name);
 
   if (SecuritySettings.Password[0]!=0)
     ArduinoOTA.setPassword(SecuritySettings.Password);
@@ -2494,5 +2527,29 @@ void ArduinoOTAInit()
 
 }
 
+String getBearing(int degrees)
+{
+  const char* bearing[] = {
+    PSTR("N"),
+    PSTR("NNE"),
+    PSTR("NE"),
+    PSTR("ENE"),
+    PSTR("E"),
+    PSTR("ESE"),
+    PSTR("SE"),
+    PSTR("SSE"),
+    PSTR("S"),
+    PSTR("SSW"),
+    PSTR("SW"),
+    PSTR("WSW"),
+    PSTR("W"),
+    PSTR("WNW"),
+    PSTR("NW"),
+    PSTR("NNW")
+  };
+
+    return(bearing[int(degrees/22.5)]);
+
+}
 
 #endif
