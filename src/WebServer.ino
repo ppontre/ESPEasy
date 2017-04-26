@@ -1084,15 +1084,11 @@ void handle_devices() {
         Settings.TaskDeviceSendData[controllerNr][index - 1] = (taskdevicesenddata[controllerNr] == "on");
       }
 
-      if (Device[DeviceIndex].Type == DEVICE_TYPE_SINGLE)
-      {
+      if (taskdevicepin1.length() != 0)
         Settings.TaskDevicePin1[index - 1] = taskdevicepin1.toInt();
-      }
-      if (Device[DeviceIndex].Type == DEVICE_TYPE_DUAL)
-      {
-        Settings.TaskDevicePin1[index - 1] = taskdevicepin1.toInt();
+
+      if (taskdevicepin2.length() != 0)
         Settings.TaskDevicePin2[index - 1] = taskdevicepin2.toInt();
-      }
 
       if (taskdevicepin3.length() != 0)
         Settings.TaskDevicePin3[index - 1] = taskdevicepin3.toInt();
@@ -1339,15 +1335,20 @@ void handle_devices() {
           reply += F("'>");
         }
 
-        if (Device[DeviceIndex].Type == DEVICE_TYPE_SINGLE || Device[DeviceIndex].Type == DEVICE_TYPE_DUAL)
+        if (Device[DeviceIndex].Type >= DEVICE_TYPE_SINGLE && Device[DeviceIndex].Type <= DEVICE_TYPE_TRIPLE)
         {
           reply += F("<TR><TD>1st GPIO:<TD>");
           addPinSelect(false, reply, "taskdevicepin1", Settings.TaskDevicePin1[index - 1]);
         }
-        if (Device[DeviceIndex].Type == DEVICE_TYPE_DUAL)
+        if (Device[DeviceIndex].Type >= DEVICE_TYPE_DUAL && Device[DeviceIndex].Type <= DEVICE_TYPE_TRIPLE)
         {
           reply += F("<TR><TD>2nd GPIO:<TD>");
           addPinSelect(false, reply, "taskdevicepin2", Settings.TaskDevicePin2[index - 1]);
+        }
+        if (Device[DeviceIndex].Type == DEVICE_TYPE_TRIPLE)
+        {
+          reply += F("<TR><TD>3rd GPIO:<TD>");
+          addPinSelect(false, reply, "taskdevicepin3", Settings.TaskDevicePin3[index - 1]);
         }
 
         if (Device[DeviceIndex].PullUpOption)
@@ -1944,7 +1945,7 @@ void handle_i2cscanner() {
           reply += F("PCF8574A<BR>OLED");
           break;
         case 0x40:
-          reply += F("SI7021<BR>INA219<BR>PCA9685");
+          reply += F("SI7021<BR>HTU21D<BR>INA219<BR>PCA9685");
           break;
         case 0x41:
         case 0x42:
@@ -1972,7 +1973,7 @@ void handle_i2cscanner() {
           reply += F("DHT12<BR>BH1750");
           break;
         case 0x60:
-          reply += F("Adafruit Motorshield v2");
+          reply += F("Adafruit Motorshield v2<BR>SI1145");
           break;
         case 0x70:
           reply += F("Adafruit Motorshield v2 (Catchall)");
@@ -2928,7 +2929,11 @@ void handle_rules() {
     {
       reply += F("<TR><TD><textarea name='rules' rows='15' cols='80' wrap='off'>");
       while (f.available())
-        reply += (char)f.read();
+      {
+        String c((char)f.read());
+        htmlEscape(c);
+        reply += c;
+      }
       reply += F("</textarea>");
     }
   }
