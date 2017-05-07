@@ -376,17 +376,11 @@ boolean Plugin_015(byte function, struct EventStruct *event, String& string)
         }
         string += F("</select>");
 
-        string += F("<TR><TD>Send sensor to sleep:<TD>");
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][2])
-          string += F("<input type=checkbox name=plugin_015_sleep checked>");
-        else
-          string += F("<input type=checkbox name=plugin_015_sleep>");
+        addFormCheckBox(string, F("Send sensor to sleep:"), F("plugin_015_sleep"),
+        		Settings.TaskDevicePluginConfig[event->TaskIndex][2]);
 
-        string += F("<TR><TD>Enable 16x Gain:<TD>");
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][3])
-          string += F("<input type=checkbox name=plugin_015_gain checked>");
-        else
-          string += F("<input type=checkbox name=plugin_015_gain>");
+        addFormCheckBox(string, F("Enable 16x Gain:"), F("plugin_015_gain"),
+        		Settings.TaskDevicePluginConfig[event->TaskIndex][3]);
 
         success = true;
         break;
@@ -394,17 +388,13 @@ boolean Plugin_015(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_WEBFORM_SAVE:
       {
-        String plugin1 = WebServer.arg(F("plugin_015_tsl2561_i2c"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][0] = plugin1.toInt();
+        Settings.TaskDevicePluginConfig[event->TaskIndex][0] = getFormItemInt(F("plugin_015_tsl2561_i2c"));
 
-        String plugin2 = WebServer.arg(F("plugin_015_integration"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][1] = plugin2.toInt();
+        Settings.TaskDevicePluginConfig[event->TaskIndex][1] = getFormItemInt(F("plugin_015_integration"));
 
-        String plugin3 = WebServer.arg(F("plugin_015_sleep"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][2] = (plugin3 == "on");
+        Settings.TaskDevicePluginConfig[event->TaskIndex][2] = isFormItemChecked(F("plugin_015_sleep"));
 
-        String plugin4 = WebServer.arg(F("plugin_015_gain"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][3] = (plugin4 == "on");
+        Settings.TaskDevicePluginConfig[event->TaskIndex][3] = isFormItemChecked(F("plugin_015_gain"));
 
         success = true;
         break;

@@ -290,7 +290,7 @@ void ExecuteCommand(byte source, const char *Line)
 
   if (strcasecmp_P(Command, PSTR("TimerSet")) == 0)
   {
-    if (Par1>=0 && Par1<RULES_TIMER_MAX)
+    if (Par1>=1 && Par1<=RULES_TIMER_MAX)
     {
       success = true;
       if (Par2)
@@ -299,6 +299,10 @@ void ExecuteCommand(byte source, const char *Line)
       else
         //disable existing timer
         RulesTimer[Par1 - 1] = 0L;
+    }
+    else
+    {
+      addLog(LOG_LEVEL_ERROR, F("TIMER: invalid timer number"));
     }
   }
 
@@ -420,6 +424,18 @@ void ExecuteCommand(byte source, const char *Line)
     strcpy(SecuritySettings.WifiKey, Line + 8);
   }
 
+  if (strcasecmp_P(Command, PSTR("WifiSSID2")) == 0)
+  {
+    success = true;
+    strcpy(SecuritySettings.WifiSSID2, Line + 10);
+  }
+
+  if (strcasecmp_P(Command, PSTR("WifiKey2")) == 0)
+  {
+    success = true;
+    strcpy(SecuritySettings.WifiKey2, Line + 9);
+  }
+
   if (strcasecmp_P(Command, PSTR("WifiScan")) == 0)
   {
     success = true;
@@ -506,6 +522,8 @@ void ExecuteCommand(byte source, const char *Line)
     Serial.print(F("  Unit          : ")); Serial.println((int)Settings.Unit);
     Serial.print(F("  WifiSSID      : ")); Serial.println(SecuritySettings.WifiSSID);
     Serial.print(F("  WifiKey       : ")); Serial.println(SecuritySettings.WifiKey);
+    Serial.print(F("  WifiSSID2     : ")); Serial.println(SecuritySettings.WifiSSID2);
+    Serial.print(F("  WifiKey2      : ")); Serial.println(SecuritySettings.WifiKey2);
     Serial.print(F("  Free mem      : ")); Serial.println(FreeMem());
   }
 

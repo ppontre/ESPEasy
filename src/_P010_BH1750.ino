@@ -93,11 +93,7 @@ boolean Plugin_010(byte function, struct EventStruct *event, String& string)
         }
         string += F("</select>");
 
-        string += F("<TR><TD>Send sensor to sleep:<TD>");
-        if (Settings.TaskDevicePluginConfig[event->TaskIndex][2])
-          string += F("<input type=checkbox name=plugin_010_sleep checked>");
-        else
-          string += F("<input type=checkbox name=plugin_010_sleep>");
+        addFormCheckBox(string, F("Send sensor to sleep:"), F("plugin_010_sleep"), Settings.TaskDevicePluginConfig[event->TaskIndex][2]);
 
         success = true;
         break;
@@ -105,12 +101,9 @@ boolean Plugin_010(byte function, struct EventStruct *event, String& string)
 
     case PLUGIN_WEBFORM_SAVE:
       {
-        String plugin1 = WebServer.arg(F("plugin_010"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][0] = plugin1.toInt();
-        String plugin2 = WebServer.arg(F("plugin_010_mode"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][1] = plugin2.toInt();
-        String plugin3 = WebServer.arg(F("plugin_010_sleep"));
-        Settings.TaskDevicePluginConfig[event->TaskIndex][2] = (plugin3 == "on");
+        Settings.TaskDevicePluginConfig[event->TaskIndex][0] = getFormItemInt(F("plugin_010"));
+        Settings.TaskDevicePluginConfig[event->TaskIndex][1] = getFormItemInt(F("plugin_010_mode"));
+        Settings.TaskDevicePluginConfig[event->TaskIndex][2] = isFormItemChecked(F("plugin_010_sleep"));
         success = true;
         break;
       }
