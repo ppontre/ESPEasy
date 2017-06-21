@@ -177,7 +177,7 @@ boolean Plugin_042(byte function, struct EventStruct *event, String& string)
         string += F("<label for='web_Color_Selected'> Use selected color</label><br>");
 
         // Color Selection
-        char hexvalue[6] = {0};
+        char hexvalue[7] = {0};
         sprintf(hexvalue, "%02X%02X%02X",     // Create Hex value for color
                 Settings.TaskDevicePluginConfig[event->TaskIndex][0],
                 Settings.TaskDevicePluginConfig[event->TaskIndex][1],
@@ -696,7 +696,7 @@ void RGBtoHSV(byte r, byte g, byte b, double hsv[3]) {
     double minval = rd;
     if (gd < minval) { minval = gd; }
     if (bd < minval) { minval = bd; }
-    double h, s, v = maxval;
+    double h = 0, s, v = maxval;
     double d = maxval - minval;
 
     s = maxval == 0 ? 0 : d / maxval;
